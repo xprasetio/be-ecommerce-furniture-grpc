@@ -13,7 +13,16 @@ type serviceHandler struct {
 	service.UnimplementedHelloWorldServiceServer
 }
 
-func (s *serviceHandler)  HelloWorld(ctx context.Context,request *service.HelloWorldRequest) (*service.HelloWorldResponse, error) {
+func (s *serviceHandler)  HelloWorld(ctx context.Context,request *service.HelloWorldRequest) (*service.HelloWorldResponse, error) {	
+	validationErros, err :=utils.CheckValidation(request)
+	if err != nil {
+		return nil, err
+	}
+	if validationErros != nil {
+		return  &service.HelloWorldResponse{ 
+			Base: utils.ValidationErrorResponse(validationErros),
+		}, nil
+	}
 	return &service.HelloWorldResponse{
 		Message: fmt.Sprintf("Hello %s", request.Name),
 		Base: utils.SuccessResponse("Success"),
