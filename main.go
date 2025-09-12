@@ -8,27 +8,31 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/internal/handler"
-	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/pb/service"
+	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/internal/repository"
+	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/internal/service"
+	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/pb/auth"
 	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/pkg/database"
 	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/pkg/grpcmiddleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
-
-
-
 func main() {
 	ctx := context.Background()
 	godotenv.Load()
-	lis, err :=net.Listen("tcp", ":50051")
+	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Panicf("failed to listen: %v", err)
 	}
 
-	database.ConnectDB(ctx, os.Getenv("DB_URI"))
+	db := database.ConnectDB(ctx, os.Getenv("DB_URI"))
 
-	serviceHandler := handler.NewServiceHandler()
+	authRepository := repository.NewAuthRepository(db)
+
+	authService := service.NewAuthService(authRepository)
+	authHandler := handler.NewAuthHandler(authService)
+
+
 
 	serv := grpc.NewServer(
 		grpc.ChainUnaryInterceptor(
@@ -36,9 +40,9 @@ func main() {
 		),
 	)
 
-	service.RegisterHelloWorldServiceServer(serv, serviceHandler)
+	auth.RegisterAuthServiceServer(serv, authHandler)
 
-	if os.Getenv("ENVIRONMENT") == "dev" { 
+	if os.Getenv("ENVIRONMENT") == "dev" {
 		reflection.Register(serv)
 		log.Println(" Reflection is registered") // hanya di development
 	}
