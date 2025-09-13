@@ -10,7 +10,7 @@ package auth;
 
 
 service AuthService {
-    // rpc Login(LoginRequest) returns (LoginResponse);
+    rpc Login(LoginRequest) returns (LoginResponse);
     rpc Register(RegisterRequest) returns (RegisterResponse);
 }
 
@@ -20,7 +20,16 @@ message RegisterRequest {
     string password = 3 [(buf.validate.field).string = {min_len: 1, max_len: 100}];
     string password_confirmation = 4 [(buf.validate.field).string = {min_len: 1, max_len: 100}];
 }
-
 message RegisterResponse {
     common.BaseResponse base = 1;
+
+}
+message LoginRequest {
+    string email = 1 [(buf.validate.field).string = {email:true,min_len: 1, max_len: 100}];
+    string password = 2 [(buf.validate.field).string = {min_len: 1, max_len: 100}];
+}
+
+message LoginResponse {
+    common.BaseResponse base = 1;
+    string access_token = 2;
 }
