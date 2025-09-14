@@ -20,7 +20,7 @@ type authRepository struct {
 }
 
 func (s *authRepository) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
-	row := s.db.QueryRowContext(ctx, "SELECT id,email, password, full_name, role_code FROM \"user\" WHERE email = $1 AND is_deleted IS false", email)
+	row := s.db.QueryRowContext(ctx, "SELECT id,email, password, full_name, role_code, created_at FROM \"user\" WHERE email = $1 AND is_deleted IS false", email)
 	if row.Err() != nil {
 		return nil, row.Err()
 	}
@@ -31,6 +31,7 @@ func (s *authRepository) GetUserByEmail(ctx context.Context, email string) (*ent
 		&user.Password,
 		&user.FullName,
 		&user.RoleCode,
+		&user.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

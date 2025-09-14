@@ -82,6 +82,13 @@ func (s *authHandler) ChangePassword(ctx context.Context, request *auth.ChangePa
 	}
 	return res, nil
 }
+func (s *authHandler) GetProfile(ctx context.Context, request *auth.GetProfileRequest) (*auth.GetProfileResponse, error) {
+	res, err := s.authService.GetProfile(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
 
 func NewAuthHandler(authService service.IAuthService) *authHandler {
 	return &authHandler{

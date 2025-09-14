@@ -45,3 +45,12 @@ func GetClaimsFromToken(token string) (*JwtClaims, error) {
 func (jc *JwtClaims) SetToContext(ctx context.Context) context.Context {
 	return context.WithValue(ctx, JwtEntityContextKeyValue, jc)
 }
+
+
+func GetClaimsFromContext(ctx context.Context) (*JwtClaims, error) {
+	claims, ok := ctx.Value(JwtEntityContextKeyValue).(*JwtClaims)
+	if !ok {
+		return nil, utils.UnauthenticatedResponse()
+	}
+	return claims, nil
+}
