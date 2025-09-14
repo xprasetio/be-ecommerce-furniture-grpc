@@ -59,8 +59,24 @@ func (s *authHandler) Logout(ctx context.Context, request *auth.LogoutRequest) (
 			Base: utils.ValidationErrorResponse(validationErros),
 		}, nil
 	}
-	//Proses Logout
 	res, err := s.authService.Logout(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
+func (s *authHandler) ChangePassword(ctx context.Context, request *auth.ChangePasswordRequest) (*auth.ChangePasswordResponse, error) {
+	validationErros, err := utils.CheckValidation(request)
+	if err != nil {
+		return nil, err
+	}
+	if validationErros != nil {
+		return &auth.ChangePasswordResponse{
+			Base: utils.ValidationErrorResponse(validationErros),
+		}, nil
+	}
+	res, err := s.authService.ChangePassword(ctx, request)
 	if err != nil {
 		return nil, err
 	}

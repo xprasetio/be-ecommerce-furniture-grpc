@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"time"
 
 	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/internal/entity"
 )
@@ -11,6 +12,7 @@ import (
 type IAuthRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
 	InsertUser(ctx context.Context, user *entity.User) error
+	UpdateUserPassword(ctx context.Context, userId string, hashedNewPassword string, updatedBy string) error
 }
 
 type authRepository struct {
@@ -53,6 +55,18 @@ func (s *authRepository) InsertUser(ctx context.Context, user *entity.User) erro
 		user.DeletedAt,
 		user.DeletedBy,
 		user.IsDeleted,
+	)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+func (s *authRepository) UpdateUserPassword(ctx context.Context, userId string, hashedNewPassword string, updatedBy string) error {
+	_, err := s.db.ExecContext(ctx, "UPDATE \"user\" SET password = $1, updated_at = $2, updated_by = $3 WHERE id = $4",
+		hashedNewPassword,
+		time.Now(),
+		updatedBy,
+		userId,
 	)
 	if err != nil {
 		return err

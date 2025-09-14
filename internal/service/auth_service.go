@@ -23,6 +23,7 @@ type IAuthService interface {
 	Register(ctx context.Context, request *auth.RegisterRequest) (*auth.RegisterResponse, error)
 	Login(ctx context.Context, request *auth.LoginRequest) (*auth.LoginResponse, error)
 	Logout(ctx context.Context, request *auth.LogoutRequest) (*auth.LogoutResponse, error)
+	ChangePassword(ctx context.Context, request *auth.ChangePasswordRequest) (*auth.ChangePasswordResponse, error)
 }
 
 type authService struct {
@@ -122,6 +123,53 @@ func (s *authService) Logout(ctx context.Context, request *auth.LogoutRequest) (
 	s.cacheService.Set(jwtToken, "", time.Duration(tokenClaims.ExpiresAt.Unix()-time.Now().Unix())*time.Second)
 	return &auth.LogoutResponse{
 		Base: utils.SuccessResponse("Logout Success"),
+	}, nil
+}
+
+func (s *authService) ChangePassword(ctx context.Context, request *auth.ChangePasswordRequest) (*auth.ChangePasswordResponse, error) {
+	if request.NewPassword != request.NewPasswordConfirmation {
+		return &auth.ChangePasswordResponse{
+			Base: utils.BadRequestResponse("New Password and Confirm Password not match"),
+		}, nil
+	}
+
+	jwtToken, err := jwtentity.ParseTokenFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tokenClaims, err := jwtentity.GetClaimsFromToken(jwtToken)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.authRepository.GetUserByEmail(ctx, tokenClaims.Email)
+	if err != nil {
+		return nil, err
+	}
+	if user == nil {
+		return &auth.ChangePasswordResponse{
+			Base: utils.BadRequestResponse("User is not registered"),
+		}, nil
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(request.OldPassword))
+	if err != nil {
+		if errors.Is(err, bcrypt.ErrMismatchedHashAndPassword) {
+			return nil, status.Error(codes.Unauthenticated, "unauthenticated") // authentication from grpc
+		}
+		return nil, err
+	}
+
+	bcryptPassword, err := bcrypt.GenerateFromPassword([]byte(request.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+	user.Password = string(bcryptPassword)
+	err = s.authRepository.UpdateUserPassword(ctx, user.Id, user.Password, tokenClaims.FullName)
+	if err != nil {
+		return nil, err
+	}
+
+	return &auth.ChangePasswordResponse{
+		Base: utils.SuccessResponse("Change Password Success"),
 	}, nil
 }
 

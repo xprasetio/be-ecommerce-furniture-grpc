@@ -13,6 +13,7 @@ service AuthService {
     rpc Login(LoginRequest) returns (LoginResponse);
     rpc Register(RegisterRequest) returns (RegisterResponse);
     rpc Logout(LogoutRequest) returns (LogoutResponse);
+    rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 }
 
 message RegisterRequest {
@@ -37,5 +38,14 @@ message LoginResponse {
 
 message LogoutRequest {}
 message LogoutResponse {
+    common.BaseResponse base = 1;
+}
+
+message ChangePasswordRequest {
+    string old_password = 1 [(buf.validate.field).string = {min_len: 1, max_len: 100}];
+    string new_password = 2 [(buf.validate.field).string = {min_len: 1, max_len: 100}];
+    string new_password_confirmation = 3 [(buf.validate.field).string = {min_len: 1, max_len: 100}];
+}
+message ChangePasswordResponse {
     common.BaseResponse base = 1;
 }
