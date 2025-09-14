@@ -10,7 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-
 func ErrorMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -25,7 +24,13 @@ func ErrorMiddleware(ctx context.Context, req any, info *grpc.UnaryServerInfo, h
 	res, err := handler(ctx, req)
 	if err != nil {
 		log.Println(err)
+
+		if e, ok := status.FromError(err); ok {
+			if e.Code() == codes.Unauthenticated {
+				return nil, err
+			}
+		}
 		return nil, status.Error(codes.Internal, "Internal Server Error")
 	}
-		return res , err
+	return res, err
 }

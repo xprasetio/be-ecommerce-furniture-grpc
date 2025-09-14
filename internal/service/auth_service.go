@@ -8,7 +8,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	gocache "github.com/patrickmn/go-cache"
 	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/internal/entity"
+	jwtentity "github.com/xprasetio/be-ecommerce-furniture-grpc.git/internal/entity/jwt"
 	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/internal/repository"
 	"github.com/xprasetio/be-ecommerce-furniture-grpc.git/internal/utils"
 	auth "github.com/xprasetio/be-ecommerce-furniture-grpc.git/pb/auth"
@@ -20,10 +22,12 @@ import (
 type IAuthService interface {
 	Register(ctx context.Context, request *auth.RegisterRequest) (*auth.RegisterResponse, error)
 	Login(ctx context.Context, request *auth.LoginRequest) (*auth.LoginResponse, error)
+	Logout(ctx context.Context, request *auth.LogoutRequest) (*auth.LogoutResponse, error)
 }
 
 type authService struct {
 	authRepository repository.IAuthRepository
+	cacheService   *gocache.Cache
 }
 
 func (s *authService) Register(ctx context.Context, request *auth.RegisterRequest) (*auth.RegisterResponse, error) {
@@ -83,7 +87,7 @@ func (s *authService) Login(ctx context.Context, request *auth.LoginRequest) (*a
 		}
 		return nil, err
 	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, entity.JwtClaims{
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwtentity.JwtClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "ecommerce-furniture",
 			Subject:   user.Id,
@@ -106,8 +110,24 @@ func (s *authService) Login(ctx context.Context, request *auth.LoginRequest) (*a
 	}, nil
 }
 
-func NewAuthService(authRepository repository.IAuthRepository) IAuthService {
+func (s *authService) Logout(ctx context.Context, request *auth.LogoutRequest) (*auth.LogoutResponse, error) {
+	jwtToken, err := jwtentity.ParseTokenFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	tokenClaims, err := jwtentity.GetClaimsFromToken(jwtToken)
+	if err != nil {
+		return nil, err
+	}
+	s.cacheService.Set(jwtToken, "", time.Duration(tokenClaims.ExpiresAt.Unix()-time.Now().Unix())*time.Second)
+	return &auth.LogoutResponse{
+		Base: utils.SuccessResponse("Logout Success"),
+	}, nil
+}
+
+func NewAuthService(authRepository repository.IAuthRepository, cacheService *gocache.Cache) IAuthService {
 	return &authService{
 		authRepository: authRepository,
+		cacheService:   cacheService,
 	}
 }

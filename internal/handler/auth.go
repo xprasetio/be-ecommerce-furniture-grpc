@@ -49,6 +49,24 @@ func (s *authHandler) Login(ctx context.Context, request *auth.LoginRequest) (*a
 	return res, nil
 }
 
+func (s *authHandler) Logout(ctx context.Context, request *auth.LogoutRequest) (*auth.LogoutResponse, error) {
+	validationErros, err := utils.CheckValidation(request)
+	if err != nil {
+		return nil, err
+	}
+	if validationErros != nil {
+		return &auth.LogoutResponse{
+			Base: utils.ValidationErrorResponse(validationErros),
+		}, nil
+	}
+	//Proses Logout
+	res, err := s.authService.Logout(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
+}
+
 func NewAuthHandler(authService service.IAuthService) *authHandler {
 	return &authHandler{
 		authService: authService,
